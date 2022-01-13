@@ -4,7 +4,6 @@ import io.github.followsclosley.pegsandjokers.Card;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 public class CardRenderer {
@@ -13,21 +12,20 @@ public class CardRenderer {
 
     public CardRenderer init() {
         try {
-            for(Card.Suit s : Card.Suit.values()){
+            for (Card.Suit s : Card.Suit.values()) {
                 for (int n = 0; n <= 13; n++) {
-                    sprites[s.ordinal()][n] = ImageIO.read(CardRenderer.class.getResourceAsStream("/cards/"+n+"_of_" + s.name().toLowerCase() + ".png" ))
-                            .getScaledInstance(500/5, 726/5, Image.SCALE_SMOOTH);
+                    sprites[s.ordinal()][n] = ImageIO.read(CardRenderer.class.getResourceAsStream("/cards/" + n + "_of_" + s.name().toLowerCase() + ".png"))
+                            .getScaledInstance(500 / 5, 726 / 5, Image.SCALE_SMOOTH);
                 }
             }
-        }
-        catch(IOException ouch){
+        } catch (IOException ouch) {
             ouch.printStackTrace();
         }
 
         return this;
     }
 
-    public Image getImage(int suit, int number){
+    public Image getImage(int suit, int number) {
         return sprites[suit][number];
     }
 }

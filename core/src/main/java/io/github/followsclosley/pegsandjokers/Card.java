@@ -5,6 +5,7 @@ import java.util.Objects;
 public class Card {
     private final Suit suit;
     private final int value;
+
     public Card(Suit suit, int value) {
         this.suit = suit;
         this.value = value;
@@ -18,15 +19,6 @@ public class Card {
         return suit;
     }
 
-    public enum Suit {
-        CLUBS, DIAMONDS, HEARTS, SPADES;
-        private static final Suit[] values = values();
-
-        public static Suit get(int ordinal) {
-            return values[ordinal];
-        }
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -38,5 +30,14 @@ public class Card {
     @Override
     public int hashCode() {
         return Objects.hash(suit, value);
+    }
+
+    public enum Suit {
+        CLUBS, DIAMONDS, HEARTS, SPADES;
+        private static final Suit[] values = values();
+
+        public static Suit get(int ordinal) {
+            return values[ordinal];
+        }
     }
 }

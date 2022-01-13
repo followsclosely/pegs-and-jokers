@@ -86,7 +86,7 @@ public class MutableBoard extends AbstractBoard {
     }
 
     private void performTranslation(Translation turn) throws InvalidMoveException {
-        int distance = Math.min(turn.getCard().getValue(),10);
+        int distance = Math.min(turn.getCard().getValue(), 10);
         movePiece(turn.getPegIndex(), distance);
     }
 

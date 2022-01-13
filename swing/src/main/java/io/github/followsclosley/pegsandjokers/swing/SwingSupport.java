@@ -1,5 +1,6 @@
 package io.github.followsclosley.pegsandjokers.swing;
 
+import com.google.common.eventbus.EventBus;
 import io.github.followsclosley.pegsandjokers.ArtificialIntelligence;
 import io.github.followsclosley.pegsandjokers.Board;
 import io.github.followsclosley.pegsandjokers.ai.Dummy;
@@ -7,6 +8,8 @@ import io.github.followsclosley.pegsandjokers.board.MutableBoard;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 /**
  * This class uses a builder patter to launch a swing UI to
@@ -19,6 +22,7 @@ public class SwingSupport {
 
     private ArtificialIntelligence bot;
     private Board board;
+
 
     public static void main(String[] args) {
         new SwingSupport()
@@ -52,19 +56,32 @@ public class SwingSupport {
      */
     public void run() {
 
+        EventBus eventBus = new EventBus("Default Event Bus");
+
         if (board == null) {
             board = new MutableBoard(4);
         }
 
-        BoardPanel boardPanel = new BoardPanel(board);
+        BoardPanel boardPanel = new BoardPanel(eventBus, board);
+        eventBus.register(boardPanel);
         boardPanel.setDrawDebugLines(false);
+        boardPanel.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                boardPanel.mouseClicked(e);
+            }
+        });
 
-        HandPanel handPanel = new HandPanel(new CardRenderer().init());
+        HandPanel handPanel = new HandPanel(eventBus, new CardRenderer().init());
+        eventBus.register(handPanel);
+        handPanel.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                handPanel.mouseClicked(e);
+            }
+        });
 
         JFrame frame = new JFrame("Connect");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
-        GridBagConstraints c = new GridBagConstraints();
         frame.add(boardPanel, BorderLayout.CENTER);
         frame.add(handPanel, BorderLayout.SOUTH);
         frame.pack();

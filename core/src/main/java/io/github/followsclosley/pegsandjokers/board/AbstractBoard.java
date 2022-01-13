@@ -4,8 +4,7 @@ import io.github.followsclosley.pegsandjokers.Board;
 import io.github.followsclosley.pegsandjokers.Card;
 import io.github.followsclosley.pegsandjokers.Peg;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.IntStream;
 
 public abstract class AbstractBoard implements Board {
@@ -38,6 +37,10 @@ public abstract class AbstractBoard implements Board {
         return segments[playerIndex].safe[pegIndex];
     }
 
+    public List<Peg> getPegs(int playerIndex){
+        return segments[playerIndex].pegs;
+    }
+
     public int getStartPegIndex(int playerIndex) {
         return playerIndex * 18 + DEFAULT_STARTING_INDEX;
     }
@@ -46,20 +49,29 @@ public abstract class AbstractBoard implements Board {
         return currentPlayerIndex;
     }
 
-    public List<Card> getCards(int playerIndex){
+    public List<Card> getCards(int playerIndex) {
         return segments[playerIndex].cards;
     }
 
     protected static class BoardSegment {
+
+        protected final int color;
+
+        protected final List<Peg> pegs;
+        protected final List<Card> cards = new ArrayList<>();
+
         protected final Peg[] board = new Peg[18];
         protected final Peg[] start = new Peg[5];
         protected final Peg[] safe = new Peg[5];
-        protected final List<Card> cards = new ArrayList<>();
 
-        BoardSegment(int color) {
+
+        private BoardSegment(int color) {
+            this.color = color;
             for (int i = 0; i < 5; i++) {
-                start[i] = new Peg(color);
+                this.start[i] = new Peg(color, i);
             }
+
+            this.pegs = List.of(this.start);
         }
     }
 }
