@@ -4,8 +4,12 @@ package io.github.followsclosley.pegsandjokers.swing;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.github.followsclosley.pegsandjokers.Board;
+import io.github.followsclosley.pegsandjokers.Card;
 import io.github.followsclosley.pegsandjokers.Peg;
+import io.github.followsclosley.pegsandjokers.Turn;
+import io.github.followsclosley.pegsandjokers.board.MutableBoard;
 import io.github.followsclosley.pegsandjokers.swing.events.CardSelectedEvent;
+import io.github.followsclosley.pegsandjokers.swing.events.PegSelectedEvent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,8 +33,11 @@ public class BoardPanel extends JPanel {
     private boolean drawDebugLines = false;
     private final LayoutDetails[] layoutDetails;
 
-    private Peg selected;
+    private Peg selectedPeg;
+    private Card selectedCard;
+
     private final Set<Peg> pegsThanCanMoveThisTurn = new HashSet<>();
+    private final Set<Integer> spotsThatCanMoveToThisTurn = new HashSet<>();
 
     public BoardPanel(EventBus eventBus, Board board) {
         this.board = board;
@@ -85,7 +92,7 @@ public class BoardPanel extends JPanel {
 
     private void paintSpace(Graphics2D gg, Peg peg, int playerIndex, Color color, int x, int y, int index) {
 
-        if ( (selected != null && selected.equals(peg)) || pegsThanCanMoveThisTurn.contains(peg)){
+        if ( (selectedPeg != null && selectedPeg.equals(peg)) || pegsThanCanMoveThisTurn.contains(peg)){
             gg.setColor(color.darker());
             gg.fillOval(x + HALF_PADDING-2, y + HALF_PADDING-2, PIECE_SIZE+4, PIECE_SIZE+4);
         }
@@ -97,9 +104,15 @@ public class BoardPanel extends JPanel {
             gg.setColor(COLORS[peg.getColor()]);
             gg.fillOval(x + HALF_PADDING, y + HALF_PADDING, PIECE_SIZE, PIECE_SIZE);
         }
+        if( spotsThatCanMoveToThisTurn.contains( index + 18*playerIndex)){
+            gg.setColor(color.darker());
+            gg.drawOval(x + HALF_PADDING-1, y + HALF_PADDING-1, PIECE_SIZE+2, PIECE_SIZE+2);
+        }
 
-        gg.setColor(Color.GRAY);
-        gg.drawRect(x, y, PIECE_WITH_PADDING_SIZE, PIECE_WITH_PADDING_SIZE);
+        if( !drawDebugLines ) {
+            gg.setColor(Color.GRAY);
+            gg.drawRect(x, y, PIECE_WITH_PADDING_SIZE, PIECE_WITH_PADDING_SIZE);
+        }
 
         if (drawDebugLines) {
             gg.setColor(Color.RED);
@@ -110,6 +123,10 @@ public class BoardPanel extends JPanel {
 
             Rectangle safe = layoutDetails[playerIndex].safeRectangle;
             gg.drawRect(safe.x, safe.y, safe.width, safe.height);
+
+            gg.setColor(COLORS[playerIndex]);
+            Rectangle play = layoutDetails[playerIndex].playRectangle;
+            gg.drawRect(play.x, play.y, play.width, play.height);
         }
     }
 
@@ -117,12 +134,16 @@ public class BoardPanel extends JPanel {
     public void onCardSelected(CardSelectedEvent e) {
         System.out.println(e);
 
-        selected = null;
+        selectedPeg = null;
         pegsThanCanMoveThisTurn.clear();
 
-        if( e.getCard() != null ) {
-            int value = e.getCard().getValue();
-            for (Peg peg : board.getPegs(2)) {
+        if( e.getCard() == null ) {
+            this.selectedCard = null;
+        } else {
+            this.selectedCard = e.getCard();
+            int value = this.selectedCard.getValue();
+            for (Peg peg : board.getPegs(board.getCurrentPlayerIndex())) {
+
                 System.out.println("  " + peg);
 
                 if (value == 0 || value == 1 || value >= 11) {
@@ -136,6 +157,23 @@ public class BoardPanel extends JPanel {
         SwingUtilities.invokeLater(this::repaint);
     }
 
+    @Subscribe
+    public void onPegSelected(PegSelectedEvent e) {
+
+        Peg selected = e.getPeg();
+        int color = selected.getColor();
+        int value = this.selectedCard.getValue();
+
+        if (value == 0 || value == 1 || value >= 11) {
+            int pegAtDoorIndex = (color * 18) + 8;
+            Peg pegAtDoor = board.getPegInPlay(pegAtDoorIndex);
+            if( pegAtDoor == null || pegAtDoor.getColor() != color){
+                System.out.println("Adding " + pegAtDoorIndex + " to spotsThatCanMoveToThisTurn." );
+                spotsThatCanMoveToThisTurn.add(pegAtDoorIndex);
+            }
+        }
+    }
+
     public void setDrawDebugLines(boolean drawDebugLines) {
         this.drawDebugLines = drawDebugLines;
     }
@@ -143,7 +181,27 @@ public class BoardPanel extends JPanel {
     public void mouseClicked(MouseEvent e) {
         System.out.println(e);
         for (LayoutDetails details : layoutDetails ) {
-            if (details.homeRectangle.contains(e.getX(), e.getY() ) ){
+
+            if( details.playRectangle.contains(e.getX(), e.getY() ) ){
+                int dx = (e.getX() - (int)details.playRectangle.getX()) / PIECE_WITH_PADDING_SIZE;
+                int dy = (e.getY() - (int)details.playRectangle.getY()) / PIECE_WITH_PADDING_SIZE;
+                int index = Math.min(details.safeDeltaX, details.safeDeltaY) == -1 ? 18 - Math.max(dx, dy) -1 : Math.max(dx, dy);
+
+                System.out.println("CLICK IN PLAY!!!!! " + details.playerIndex + "  (" + dx + "," + dy + ") " + index);
+
+                if( spotsThatCanMoveToThisTurn.contains(index + details.playerIndex*18)){
+                    ((MutableBoard)board).perform(Turn.builder()
+                            .comeOut()
+                            .startPeg(this.selectedPeg.getPegIndex())
+                            .peg(index + details.playerIndex*18)
+                            .build());
+                    SwingUtilities.invokeLater(this::repaint);
+                }
+
+                //spotsThatCanMoveToThisTurn
+
+            }
+            else if (details.homeRectangle.contains(e.getX(), e.getY() ) ){
                 int dx = (e.getX() - (int)details.homeRectangle.getX()) / PIECE_WITH_PADDING_SIZE;
                 int dy = (e.getY() - (int)details.homeRectangle.getY()) / PIECE_WITH_PADDING_SIZE;
                 int index = Math.min(details.safeDeltaX, details.safeDeltaY) == -1 ? 4 - Math.max(dx, dy) : Math.max(dx, dy);
@@ -151,17 +209,18 @@ public class BoardPanel extends JPanel {
 
                 Peg peg = board.getPegInStart(details.playerIndex, index);
                 if( peg != null && pegsThanCanMoveThisTurn.contains(peg)){
-                    selected = peg;
+                    selectedPeg = peg;
                     pegsThanCanMoveThisTurn.clear();
                     SwingUtilities.invokeLater(this::repaint);
-                }
 
-            } else if (details.safeRectangle.contains(e.getX(), e.getY() ) ){
+                    eventBus.post(new PegSelectedEvent(selectedPeg));
+                }
+            }
+            else if (details.safeRectangle.contains(e.getX(), e.getY() ) ){
                 int dx = (e.getX() - (int)details.safeRectangle.getX()) / PIECE_WITH_PADDING_SIZE;
                 int dy = (e.getY() - (int)details.safeRectangle.getY()) / PIECE_WITH_PADDING_SIZE;
                 int index = Math.min(details.safeDeltaX, details.safeDeltaY) == -1 ? 4 - Math.max(dx, dy) : Math.max(dx, dy);
                 System.out.println("CLICK IN SAFE!!!!! " + details.playerIndex + "  (" + dx + "," + dy + ") " + index);
-
             }
         }
     }
@@ -172,7 +231,7 @@ public class BoardPanel extends JPanel {
 
         public final Rectangle homeRectangle;
         public final Rectangle safeRectangle;
-        //public final Rectangle playRectangle;
+        public final Rectangle playRectangle;
 
         public LayoutDetails(int playerIndex, int startX, int startY, int deltaX, int deltaY, int safeDeltaX, int safeDeltaY) {
             this.playerIndex = playerIndex;
@@ -183,10 +242,9 @@ public class BoardPanel extends JPanel {
             this.safeDeltaX = safeDeltaX;
             this.safeDeltaY = safeDeltaY;
 
-            //Calculate the Rectangle the surrounds home.
             this.homeRectangle = calculateRectangle(8);
-
             this.safeRectangle = calculateRectangle(3);
+            this.playRectangle = calculateRectangle();
         }
 
         private Rectangle calculateRectangle(int offset){
@@ -196,6 +254,25 @@ public class BoardPanel extends JPanel {
 
             int rx2 = startX + (5 * safeDeltaX * PIECE_WITH_PADDING_SIZE) + (offset * deltaX * PIECE_WITH_PADDING_SIZE);
             int ry2 = startY + (5 * safeDeltaY * PIECE_WITH_PADDING_SIZE) + (offset * deltaY * PIECE_WITH_PADDING_SIZE);
+
+            int topLeftx = Math.min(rx1, rx2);
+            int topLefty = Math.min(ry1, ry2);
+
+            int bottomRightx = Math.max(rx1, rx2);
+            int bottomRighty = Math.max(ry1, ry2);
+
+            int xSize = bottomRightx - topLeftx + PIECE_WITH_PADDING_SIZE;
+            int ySize = bottomRighty - topLefty + PIECE_WITH_PADDING_SIZE;
+
+            return new Rectangle(topLeftx, topLefty, xSize,ySize);
+        }
+
+        private Rectangle calculateRectangle(){
+            int rx1 = startX;
+            int ry1 = startY;
+
+            int rx2 = startX + (17 * deltaX * PIECE_WITH_PADDING_SIZE);
+            int ry2 = startY + (17 * deltaY * PIECE_WITH_PADDING_SIZE);
 
             int topLeftx = Math.min(rx1, rx2);
             int topLefty = Math.min(ry1, ry2);

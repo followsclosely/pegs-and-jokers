@@ -28,7 +28,7 @@ public class HandPanel extends JPanel {
         setBorder(BorderFactory.createLineBorder(Color.GRAY));
 
         Deck deck = new Deck();
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             cards.add(deck.pop());
         }
 
@@ -50,7 +50,7 @@ public class HandPanel extends JPanel {
 
     public void mouseClicked(MouseEvent e) {
         int index = (e.getX() - CARD_PADDING) / CARD_OFFSET;
-        if (index >= 0 && index < 5) {
+        if (index >= 0 && index < cards.size()) {
             Card selected = cards.get(index);
             this.selected = (selected.equals(this.selected)) ? null : selected;
             eventBus.post(new CardSelectedEvent(this.selected));

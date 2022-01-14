@@ -10,4 +10,6 @@ public interface Board {
     Peg getPegInSafe(int playerIndex, int pegIndex);
 
     List<Peg> getPegs(int playerIndex);
+
+    int getCurrentPlayerIndex();
 }

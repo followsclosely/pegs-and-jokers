@@ -60,7 +60,7 @@ public class MutableBoard extends AbstractBoard {
     }
 
     private Peg performComeOut(ComeOut turn) throws InvalidMoveException {
-        for (int i = 0; i < 5; i++) {
+        for (int i = turn.getStartPegIndex()==-1 ? 0 : turn.getStartPegIndex(); i < 5; i++) {
             if (segments[currentPlayerIndex].start[i] != null) {
                 Peg peg = segments[currentPlayerIndex].start[i];
 

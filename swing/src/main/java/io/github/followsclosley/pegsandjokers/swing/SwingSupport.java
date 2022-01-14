@@ -64,7 +64,7 @@ public class SwingSupport {
 
         BoardPanel boardPanel = new BoardPanel(eventBus, board);
         eventBus.register(boardPanel);
-        boardPanel.setDrawDebugLines(false);
+        boardPanel.setDrawDebugLines(true);
         boardPanel.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 boardPanel.mouseClicked(e);
@@ -85,7 +85,7 @@ public class SwingSupport {
         frame.add(boardPanel, BorderLayout.CENTER);
         frame.add(handPanel, BorderLayout.SOUTH);
         frame.pack();
-        frame.setResizable(false);
+        //frame.setResizable(false);
         frame.setVisible(true);
     }
 }
